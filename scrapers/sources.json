@@ -6,72 +6,106 @@
     "regex": "Last-resort extraction: {\"price\": \"class=\\\"price\\\"[^>]*>\\\\s*KES\\\\s*([\\\\d,.]+)\", \"old_price\": \"...\"} with one ( ) group each",
     "politeness": "delay_seconds between requests to the same site; robots.txt is always respected"
   },
-
   "carrefour_site": {
     "enabled": false,
     "type": "site_pages",
     "retailer": "carrefour",
     "source": "online",
     "id_prefix": "carrefour.ke:",
-    "sitemaps": ["https://www.carrefour.ke/sitemap.xml"],
-    "sitemap_include": ["/sitemaps/products\\d+_en\\.xml"],
+    "sitemaps": [
+      "https://www.carrefour.ke/sitemap.xml"
+    ],
+    "sitemap_include": [
+      "/sitemaps/products\\d+_en\\.xml"
+    ],
     "url_include": [],
     "url_exclude": [],
     "id_from_url": "/p/([^/?#]+)",
-    "extract": ["jsonld", "meta", "next", "regex"],
+    "extract": [
+      "jsonld"
+    ],
     "delay_seconds": 3,
     "refresh_limit": 3000,
     "discover_limit": 500,
-    "_note": "Sitemap and URL pattern confirmed 2026-11-20 (/mafken/en/<category>/<product>/p/<id>). Run discover to see category names for url_include (grocery only) and which extractor works, then enable."
+    "_note": "Checked 2026-11-20: product pages carry schema.org JSON-LD with the current price (no 'was' price). BUT carrefour.ke stalls plain automated requests (timeouts) even from a Kenyan connection, while a real browser loads instantly. Needs a browser-based fetcher before enabling; meanwhile use manual checks."
   },
-
   "naivas_site": {
     "enabled": false,
     "type": "site_pages",
     "retailer": "naivas",
     "source": "online",
     "id_prefix": "naivas.online:",
-    "sitemaps": ["https://naivas.online/sitemap.xml"],
+    "sitemaps": [],
     "url_include": [],
-    "extract": ["jsonld", "meta", "next", "regex"],
+    "extract": [
+      "jsonld",
+      "meta",
+      "next",
+      "regex"
+    ],
     "delay_seconds": 3,
-    "_note": "Not yet checked: run `discover https://naivas.online` and replace this entry with its suggestion."
+    "_note": "Checked 2026-11-20: robots.txt allows us, but prices are not in the public HTML; the site loads them from a private app API after the page opens. No public route: use manual checks now, and ask Naivas for a feed."
   },
-
   "quickmart_site": {
     "enabled": false,
     "type": "site_pages",
     "retailer": "quickmart",
     "source": "online",
     "id_prefix": "quickmart.co.ke:",
-    "sitemaps": ["https://www.quickmart.co.ke/sitemap.xml"],
-    "url_include": [],
-    "extract": ["jsonld", "meta", "next", "regex"],
+    "sitemaps": [
+      "https://www.quickmart.co.ke/sitemap.xml"
+    ],
+    "url_include": [
+      "^https://www\\.quickmart\\.co\\.ke/[^/?#]+-\\d+/?$"
+    ],
+    "url_exclude": [],
+    "id_from_url": "([^/?#]+)/?$",
+    "extract": [
+      "jsonld",
+      "regex"
+    ],
+    "regex": {
+      "name": "<h1 class=\"product-title\">\\s*([^<]+?)\\s*</h1>",
+      "price": "class=\"product-title\">[\\s\\S]*?class=\"products-price-new\"[^>]*>\\s*KES\\s*([\\d,.]+)",
+      "old_price": "class=\"product-title\">[\\s\\S]*?class=\"products-price-new\"[^>]*>\\s*KES\\s*[\\d,.]+\\s*</span>\\s*<span[^>]*>\\s*<del class=\"products-price-old\">\\s*KES\\s*([\\d,.]+)"
+    },
     "delay_seconds": 3,
-    "_note": "robots.txt allows general crawlers (it blocks named AI training bots, not us). Run discover, then replace this entry."
+    "refresh_limit": 1500,
+    "discover_limit": 2000,
+    "_note": "Checked 2026-11-20 from a Kenyan connection: server-rendered product pages /<name>-<number> (slug is the id: numbers repeat across products), listed in /sitemap/list_N.xml (~14,000 pages incl. brand and category pages, which simply return no price). Price in products-price-new, offer 'was' price in products-price-old right after it. robots.txt allows us."
   },
-
   "chandarana_site": {
     "enabled": false,
     "type": "site_pages",
     "retailer": "chandarana",
     "source": "online",
     "id_prefix": "foodplus.co.ke:",
-    "sitemaps": ["https://foodplus.co.ke/sitemap.xml"],
+    "sitemaps": [
+      "https://foodplus.co.ke/sitemap.xml"
+    ],
     "url_include": [],
-    "extract": ["jsonld", "meta", "next", "regex"],
+    "extract": [
+      "jsonld",
+      "meta",
+      "next",
+      "regex"
+    ],
     "delay_seconds": 3,
-    "_note": "Not yet checked: run `discover https://foodplus.co.ke`. If robots.txt disallows us, use manual checks and Glovo for this chain."
+    "_note": "Checked 2026-11-20: foodplus.co.ke robots.txt disallows crawlers like ours. Respect it: manual checks now, and ask Chandarana for a feed."
   },
-
   "manual_checks": {
     "enabled": false,
     "type": "csv_feed",
     "source": "manual",
     "url_env": "MANUAL_SHEET_CSV_URL",
     "id_prefix": "manual:",
-    "columns": {"name": "product", "retailer": "retailer", "product_id": "product_id",
-                "price": "price", "promo_price": "promo_price"},
+    "columns": {
+      "name": "product",
+      "retailer": "retailer",
+      "product_id": "product_id",
+      "price": "price",
+      "promo_price": "promo_price"
+    },
     "_note": "Google Sheet from scrapers/templates/manual_prices.csv, published as CSV (File > Share > Publish to web > CSV). Put that link in the MANUAL_SHEET_CSV_URL secret."
   }
 }

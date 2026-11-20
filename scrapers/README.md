@@ -51,14 +51,14 @@ extraction method on a few products, and prints a ready config. Then:
 2. Check it: `python -m pricecheck_connectors run naivas_site --mode discover --dry-run --limit 5`
 3. If the names and prices look right, set `"enabled": true`, commit and push.
 
-Status on 2026-11-20:
+Checked on 2026-11-20 from a Kenyan connection (`discover` + a real browser):
 
-| Chain | Website | Status |
+| Chain | What we found | Route |
 |---|---|---|
-| Carrefour | carrefour.ke | Sitemap and product URL pattern confirmed. Run `discover` to pick categories and confirm the extractor. |
-| Naivas | naivas.online | Not reachable from the build environment. Run `discover`. |
-| Quickmart | quickmart.co.ke | Allows general crawlers (blocks named AI-training bots). Run `discover`. |
-| Chandarana | foodplus.co.ke | Run `discover`. If its robots.txt disallows us, rely on manual checks for now. |
+| Quickmart | robots.txt allows us. Product pages are server-rendered with the price and any offer price; ~14,000 pages in `/sitemap/list_N.xml`. | **Website connector ready** (`quickmart_site`). Check with `check_quickmart.bat`, then enable. |
+| Carrefour | robots.txt allows us and product pages carry schema.org JSON-LD prices, but carrefour.ke stalls plain automated requests (timeouts), even from Kenya. | Needs a browser-based fetcher. Manual checks meanwhile. |
+| Naivas | robots.txt allows us, but prices are not in the public HTML: the site loads them from a private app API. | No public route. Manual checks now; ask Naivas for a feed. |
+| Chandarana | foodplus.co.ke robots.txt disallows crawlers like ours. | Respect it. Manual checks now; ask Chandarana for a feed. |
 
 If a site shows a "checking your browser" page to GitHub's servers (common with Cloudflare), the
 run is reported as blocked. Run that connector from a Kenyan connection instead, e.g. your laptop

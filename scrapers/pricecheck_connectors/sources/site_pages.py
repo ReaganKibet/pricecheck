@@ -1,7 +1,9 @@
 """Connector for a chain's own website, read one product page at a time.
 
 Two modes keep it light on the store's servers:
-  refresh   re-read only pages we already know (from earlier runs). Daily.
+  refresh   re-read pages we already know that are matched to the catalogue
+            (the ones shoppers compare). Daily. Set "refresh_unmatched": true
+            to also re-read unmatched ones.
   discover  read the sitemap and fetch up to `discover_limit` pages we have
             not seen yet. Weekly, to pick up new products.
 """
@@ -23,6 +25,8 @@ def run(name: str, cfg: dict, client: PoliteClient, mode: str, known: list[dict]
 
     if mode == "refresh":
         # Matched products first: they are the ones shoppers compare.
+        if not cfg.get("refresh_unmatched"):
+            known = [k for k in known if k.get("matched")]
         ordered = sorted(known, key=lambda k: not k.get("matched"))
         urls = [k["url"] for k in ordered if k.get("url")]
         cap = limit or cfg.get("refresh_limit", 3000)

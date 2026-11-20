@@ -7,3 +7,4 @@ __pycache__/
 dist-v2/
 .netlify/
 scrapers/discover_results.txt
+scrapers/check_results.txt
