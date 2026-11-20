@@ -16,7 +16,10 @@ pricecheck/
       ingest-prices/  scrapers and retailer feeds post prices here
       lists/          save / load a shopper's list by phone number
   lua-agent/      Lua AI agent: persona + Shopping skill (5 tools)
-  scrapers/       template for one scraper per supermarket
+  scrapers/       price connectors: one per source, daily schedule, health alerts (see scrapers/README.md)
+  .github/        GitHub Actions schedule that runs the connectors
+  demo/           the live demo's source (chat + comparison, runs in the browser)
+  website/        what Netlify publishes (built from demo/)
 ```
 
 ## See it without any setup
@@ -35,6 +38,8 @@ and talks to people; it never adds up prices.
 
 ## What's been tested
 
+- 14 connector tests (`scrapers/tests`): the real runner against a fake store website and API.
+- Both database migrations tested on Postgres 16: source trust order, held price jumps, run health.
 - 14 unit tests on parsing ("2 x unga 2kg", "sukari kilo 2", "nusu kilo", "maziwa 500ml x4") and
   on comparison (promo prices, missing items, split-shop threshold, any-brand swaps never change
   pack size, no rounding drift, stale-price flags). Run: `npx tsx --test supabase/functions/_shared/logic.test.ts`
@@ -49,7 +54,7 @@ and talks to people; it never adds up prices.
 
 ```bash
 supabase link --project-ref <ref>
-supabase db push                        # runs the migration
+supabase db push                        # runs both migrations
 psql "$DATABASE_URL" -f supabase/seed.sql
 supabase secrets set PRICE_API_KEY=$(openssl rand -hex 24)   # keep this value
 bash supabase/deploy.sh
@@ -80,10 +85,16 @@ lua channels configure whatsapp   # then web chat for the website
 
 ## 3. Prices
 
-1. Copy `scrapers/scraper_template.py` once per store and fill in its three TODOs.
-2. Each run posts to `ingest-prices`. New store listings are matched automatically by barcode;
-   name matches are only *suggested*.
-3. Approve suggestions in the SQL editor:
+Prices come from several sources, ranked by trust: official chain **feed** > shopper **receipt** >
+**manual** check > chain's **online** store > delivery-app **aggregator**. Shoppers always see the most
+trusted price from the last 7 days, and any price that jumps more than 40% is held for review.
+Full guide: [`scrapers/README.md`](scrapers/README.md).
+
+1. Start the pilot with **manual checks**: a Google Sheet made from `scrapers/templates/manual_prices.csv`.
+2. Switch on each chain's **website** after running `python -m pricecheck_connectors discover <site>`.
+3. GitHub Actions runs every enabled source daily and emails you if one breaks.
+4. New store listings are matched automatically by barcode; name matches are only *suggested*.
+   Approve them in the SQL editor:
 
 ```sql
 select * from match_review_queue;                        -- suggested matches, best first
@@ -91,9 +102,11 @@ select approve_match(<listing_id>);                      -- accept the suggestio
 select approve_match(<listing_id>, <product_id>);        -- or link to another product
 select id, raw_name from listings where match_status = 'unmatched';  -- no suggestion yet
 update listings set match_status = 'rejected' where id = <listing_id>; -- not in catalogue
+select * from held_prices;                               -- price jumps waiting for review
+select * from connector_health;                          -- last run of every connector
 ```
 
-Only `matched` listings count in comparisons, so a wrong guess never reaches a shopper.
+Only `matched` listings and `live` prices count in comparisons, so a wrong guess never reaches a shopper.
 
 ## 4. Grow the catalogue
 

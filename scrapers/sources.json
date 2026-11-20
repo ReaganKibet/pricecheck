@@ -1,0 +1,77 @@
+{
+  "_help": {
+    "how": "One entry per price source. Run `python -m pricecheck_connectors discover <site>` on your laptop, paste its suggestion here, check with `run <name> --dry-run --limit 5`, then set enabled: true.",
+    "types": "site_pages = read product pages from the sitemap | platform_api = Shopify/WooCommerce JSON catalogue | csv_feed = CSV file or published Google Sheet (manual checks, official chain feeds)",
+    "source": "feed | receipt | manual | online | aggregator  (trust order, most trusted first)",
+    "regex": "Last-resort extraction: {\"price\": \"class=\\\"price\\\"[^>]*>\\\\s*KES\\\\s*([\\\\d,.]+)\", \"old_price\": \"...\"} with one ( ) group each",
+    "politeness": "delay_seconds between requests to the same site; robots.txt is always respected"
+  },
+
+  "carrefour_site": {
+    "enabled": false,
+    "type": "site_pages",
+    "retailer": "carrefour",
+    "source": "online",
+    "id_prefix": "carrefour.ke:",
+    "sitemaps": ["https://www.carrefour.ke/sitemap.xml"],
+    "sitemap_include": ["/sitemaps/products\\d+_en\\.xml"],
+    "url_include": [],
+    "url_exclude": [],
+    "id_from_url": "/p/([^/?#]+)",
+    "extract": ["jsonld", "meta", "next", "regex"],
+    "delay_seconds": 3,
+    "refresh_limit": 3000,
+    "discover_limit": 500,
+    "_note": "Sitemap and URL pattern confirmed 2026-11-20 (/mafken/en/<category>/<product>/p/<id>). Run discover to see category names for url_include (grocery only) and which extractor works, then enable."
+  },
+
+  "naivas_site": {
+    "enabled": false,
+    "type": "site_pages",
+    "retailer": "naivas",
+    "source": "online",
+    "id_prefix": "naivas.online:",
+    "sitemaps": ["https://naivas.online/sitemap.xml"],
+    "url_include": [],
+    "extract": ["jsonld", "meta", "next", "regex"],
+    "delay_seconds": 3,
+    "_note": "Not yet checked: run `discover https://naivas.online` and replace this entry with its suggestion."
+  },
+
+  "quickmart_site": {
+    "enabled": false,
+    "type": "site_pages",
+    "retailer": "quickmart",
+    "source": "online",
+    "id_prefix": "quickmart.co.ke:",
+    "sitemaps": ["https://www.quickmart.co.ke/sitemap.xml"],
+    "url_include": [],
+    "extract": ["jsonld", "meta", "next", "regex"],
+    "delay_seconds": 3,
+    "_note": "robots.txt allows general crawlers (it blocks named AI training bots, not us). Run discover, then replace this entry."
+  },
+
+  "chandarana_site": {
+    "enabled": false,
+    "type": "site_pages",
+    "retailer": "chandarana",
+    "source": "online",
+    "id_prefix": "foodplus.co.ke:",
+    "sitemaps": ["https://foodplus.co.ke/sitemap.xml"],
+    "url_include": [],
+    "extract": ["jsonld", "meta", "next", "regex"],
+    "delay_seconds": 3,
+    "_note": "Not yet checked: run `discover https://foodplus.co.ke`. If robots.txt disallows us, use manual checks and Glovo for this chain."
+  },
+
+  "manual_checks": {
+    "enabled": false,
+    "type": "csv_feed",
+    "source": "manual",
+    "url_env": "MANUAL_SHEET_CSV_URL",
+    "id_prefix": "manual:",
+    "columns": {"name": "product", "retailer": "retailer", "product_id": "product_id",
+                "price": "price", "promo_price": "promo_price"},
+    "_note": "Google Sheet from scrapers/templates/manual_prices.csv, published as CSV (File > Share > Publish to web > CSV). Put that link in the MANUAL_SHEET_CSV_URL secret."
+  }
+}
