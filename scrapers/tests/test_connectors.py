@@ -24,7 +24,8 @@ from pricecheck_connectors.http import PoliteClient  # noqa: E402
 from pricecheck_connectors.models import normalise_offer, parse_price  # noqa: E402
 from pricecheck_connectors.runner import run_source  # noqa: E402
 from pricecheck_connectors.sitemap import collect_urls  # noqa: E402
-from pricecheck_connectors.sources import csv_feed  # noqa: E402
+from pricecheck_connectors.discover import discover  # noqa: E402
+from pricecheck_connectors.sources import csv_feed, platform_api  # noqa: E402
 
 FIX = Path(__file__).resolve().parent / "fixtures"
 ALL = ["jsonld", "meta", "next", "regex"]
@@ -119,6 +120,7 @@ class FakeSite(BaseHTTPRequestHandler):
         "/private/en/sugar/secret/p/106": "product_jsonld.html",
     }
     hits: list[str] = []
+    graphql = False
 
     def log_message(self, *a):
         pass
@@ -126,6 +128,24 @@ class FakeSite(BaseHTTPRequestHandler):
     def do_GET(self):
         FakeSite.hits.append(self.path)
         p = self.path.split("?")[0]
+        if p == "/graphql":
+            if not FakeSite.graphql:
+                self.send_response(404)
+                self.end_headers()
+                return
+            q = self.path
+            items = [
+                {"sku": "KAB2", "name": "Kabras Sugar 2Kg", "url_key": "kabras-sugar-2kg", "url_suffix": ".html",
+                 "price_range": {"minimum_price": {"regular_price": {"value": 335}, "final_price": {"value": 299}}}},
+                {"sku": "MUM2", "name": "Mumias Sugar 2Kg", "url_key": "mumias-sugar-2kg", "url_suffix": ".html",
+                 "price_range": {"minimum_price": {"regular_price": {"value": 340}, "final_price": {"value": 340}}}},
+            ]
+            page_no = 2 if "currentPage%3A%202" in q or "currentPage: 2" in q else 1
+            if page_no == 2:
+                items = [{"sku": "JOG2", "name": "Jogoo Maize Meal 2Kg", "url_key": "jogoo-2kg",
+                          "price_range": {"minimum_price": {"regular_price": {"value": 155}, "final_price": {"value": 155}}}}]
+            body = {"data": {"products": {"total_count": 3, "page_info": {"total_pages": 2}, "items": items}}}
+            return self._send(json.dumps(body), "application/json")
         if p == "/robots.txt":
             return self._send(page("robots.txt").replace("HOST", self.host), "text/plain")
         if p == "/sitemap.xml":
@@ -250,6 +270,41 @@ class EndToEnd(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(FakeApi.reports[0]["status"], "failed")
         self.assertIn("ALERT", out.getvalue())
+
+    def test_magento_graphql_catalogue(self):
+        FakeSite.graphql = True
+        try:
+            cfg = {"platform": "magento", "base_url": self.site_url, "id_prefix": "naivas.online:", "page_size": 2}
+            res = platform_api.run("naivas_api", cfg, PoliteClient(delay_seconds=0), None)
+            got = [(i.external_id, i.price, i.promo_price, i.url) for i in res.items]
+            self.assertEqual(got, [
+                ("naivas.online:KAB2", 335, 299, f"{self.site_url}/kabras-sugar-2kg.html"),
+                ("naivas.online:MUM2", 340, None, f"{self.site_url}/mumias-sugar-2kg.html"),
+                ("naivas.online:JOG2", 155, None, f"{self.site_url}/jogoo-2kg.html"),
+            ])
+            self.assertEqual(res.pages_fetched, 2)  # followed page_info.total_pages
+        finally:
+            FakeSite.graphql = False
+
+    def test_discover_finds_magento_api(self):
+        FakeSite.graphql = True
+        try:
+            with redirect_stdout(io.StringIO()) as out:
+                report = discover(self.site_url)
+            self.assertEqual(report["suggested"]["platform"], "magento")
+            self.assertIn("Magento GraphQL WORKS", out.getvalue())
+        finally:
+            FakeSite.graphql = False
+
+    def test_discover_without_api_uses_sitemap_and_shows_prices(self):
+        with redirect_stdout(io.StringIO()) as out:
+            report = discover(self.site_url, samples=4)
+        text = out.getvalue()
+        self.assertIn("home page did not load", text)          # 404 home page doesn't stop it
+        self.assertIn("/mafken/…/…/…/…", text)                 # URL shapes listed
+        self.assertIn("[jsonld] Kabras Premium White Sugar 2Kg", text)
+        self.assertEqual(report["suggested"]["id_from_url"], r"/p/([^/?#]+)")
+        self.assertIn("price seen in HTML", text)              # regex page shows its price context
 
     def test_dry_run_sends_nothing(self):
         with redirect_stdout(io.StringIO()) as out:
