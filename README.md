@@ -19,6 +19,16 @@ pricecheck/
   scrapers/       template for one scraper per supermarket
 ```
 
+## See it without any setup
+
+Open `demo/index.html` in a browser (double-click it). It's a WhatsApp-style chat plus the
+comparison table, running the same parse, match and compare code as the edge functions on made-up
+prices for 12 products. The product search is a JavaScript port of Postgres pg_trgm that scored
+identically to Postgres on 448 test pairs. To rebuild after changing code: `cd demo && npm install && npm run build`.
+
+**Live website:** Netlify deploys from this repo (`netlify.toml` at the root). Every push to `main` runs
+the demo build and publishes `website/` to https://pricecheck-demo.netlify.app. Only `website/` is served.
+
 **Design rule:** all price logic lives in the Supabase functions. The Lua agent only calls them,
 so WhatsApp, Lua web chat and a future web app always give the same numbers. The AI reads lists
 and talks to people; it never adds up prices.

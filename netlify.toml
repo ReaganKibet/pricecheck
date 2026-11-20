@@ -1,0 +1,16 @@
+# Netlify Git deploy for the PriceCheck demo website.
+# Every push to main rebuilds the page from demo/src and publishes website/.
+# Only website/ is published; the backend code in this repo is never served.
+
+[build]
+  command = "cd demo && npm ci && npm run build"
+  publish = "website"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Sample prices under real store names: keep the demo out of search engines.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"

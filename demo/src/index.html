@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PriceCheck: find the cheapest supermarket for your list</title>
+<meta name="description" content="Send your shopping list and see which Kenyan supermarket is cheapest for the whole lot. Live demo with sample prices.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23075e54'/%3E%3Ctext x='16' y='21' font-size='13' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EPC%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --wa-dark: #075e54;
+    --wa-green: #25d366;
+    --wa-bg: #efeae2;
+    --wa-me: #d9fdd3;
+    --ink: #1c1e21;
+    --muted: #667781;
+    --line: #e4e6eb;
+    --best: #128c4a;
+    --offer: #b25e00;
+    --miss: #b42318;
+    --panel: #ffffff;
+    --page: #f4f5f7;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); min-height: 100vh; }
+
+  header.top {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 18px 28px; background: #fff; border-bottom: 1px solid var(--line);
+  }
+  header.top { justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5; }
+  header.top h1 { font-size: 20px; margin: 0; letter-spacing: -0.2px; }
+  header.top h1 span { color: var(--wa-dark); }
+  header.top nav { display: flex; gap: 18px; align-items: center; font-size: 14px; }
+  header.top nav a { color: var(--ink); text-decoration: none; }
+  a.cta { background: var(--wa-dark); color: #fff !important; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; }
+  a.cta:hover { background: #0a6f63; }
+  a.cta.big { display: inline-block; padding: 12px 22px; font-size: 15px; margin-top: 8px; }
+
+  .hero {
+    max-width: 1180px; margin: 0 auto; padding: 48px 28px 28px;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
+  }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 28px 16px 16px; gap: 24px; } }
+  .eyebrow { color: var(--wa-dark); font-weight: 700; font-size: 13px; letter-spacing: .4px; text-transform: uppercase; margin: 0 0 10px; }
+  .headline { font-size: clamp(28px, 4vw, 40px); line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.6px; }
+  .sub { color: #3b4a54; font-size: 16px; line-height: 1.55; margin: 0 0 14px; max-width: 560px; }
+  .steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .steps li {
+    counter-increment: s; background: #fff; border-radius: 12px; padding: 14px 16px 14px 58px; position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05); display: grid; gap: 3px; font-size: 14px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 16px; top: 14px; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--wa-me); color: var(--wa-dark); font-weight: 700; display: grid; place-items: center;
+  }
+  .steps li span { color: var(--muted); line-height: 1.45; }
+  .disclaimer {
+    max-width: 1124px; margin: 8px auto 0; padding: 10px 16px; border-radius: 10px; font-size: 13.5px;
+    background: #fff8e6; border: 1px solid #f3dca2; color: #6b5310; scroll-margin-top: 80px;
+  }
+  @media (max-width: 900px) { .disclaimer { margin: 8px 16px 0; } }
+
+  main {
+    display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 28px;
+    padding: 24px 28px 40px; max-width: 1180px; margin: 0 auto; align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 16px; } }
+
+  /* ---------------- phone / chat ---------------- */
+  .phone {
+    background: #fff; border-radius: 28px; padding: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.10);
+    position: sticky; top: 20px;
+  }
+  .screen { border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; height: min(720px, calc(100vh - 140px)); min-height: 520px; }
+  .wa-head { background: var(--wa-dark); color: #fff; display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--wa-green); display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+  .wa-head .who b { display: block; font-size: 15px; }
+  .wa-head .who small { opacity: .8; font-size: 12px; }
+
+  #chat {
+    flex: 1; overflow-y: auto; padding: 14px 12px; background: var(--wa-bg);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .bubble {
+    max-width: 86%; padding: 7px 9px 18px; border-radius: 8px; font-size: 14px; line-height: 1.42;
+    position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,.13); word-wrap: break-word;
+  }
+  .bubble.bot { background: #fff; align-self: flex-start; border-top-left-radius: 0; }
+  .bubble.me { background: var(--wa-me); align-self: flex-end; border-top-right-radius: 0; }
+  .bubble .time { position: absolute; right: 8px; bottom: 3px; font-size: 11px; color: var(--muted); }
+  .bubble .ticks { color: #53bdeb; }
+  .bubble.typing { padding: 10px 12px; display: flex; gap: 4px; }
+  .bubble.typing span { width: 7px; height: 7px; border-radius: 50%; background: #9aa5ad; animation: blink 1s infinite; }
+  .bubble.typing span:nth-child(2) { animation-delay: .15s; }
+  .bubble.typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .3 } 40% { opacity: 1 } }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .choices button {
+    border: 1px solid var(--line); background: #fff; color: #027eb5; border-radius: 6px;
+    padding: 8px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .choices button:hover:not(:disabled) { background: #f5f6f6; }
+  .choices button:disabled { color: var(--muted); cursor: default; }
+  .choices button.picked { color: var(--wa-dark); font-weight: 600; border-color: var(--wa-green); }
+
+  .composer { display: flex; gap: 8px; align-items: flex-end; padding: 8px; background: #f0f2f5; }
+  .composer textarea {
+    flex: 1; resize: none; border: 0; border-radius: 20px; padding: 10px 14px; font: inherit; font-size: 14px;
+    outline: none; max-height: 120px; line-height: 1.35;
+  }
+  .composer button {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--wa-dark); color: #fff;
+    cursor: pointer; display: grid; place-items: center; flex: none;
+  }
+  .composer button:hover { background: #0a6f63; }
+  .samples { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 4px 2px; }
+  .samples button {
+    border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 6px 12px;
+    font: inherit; font-size: 12.5px; cursor: pointer; color: var(--ink);
+  }
+  .samples button:hover { border-color: var(--wa-green); }
+
+  /* ---------------- panel ---------------- */
+  #panel { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  section { background: var(--panel); border-radius: 14px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  h2 { font-size: 16px; margin: 0; }
+  .saving { color: var(--best); font-weight: 600; font-size: 14px; }
+  .empty { background: var(--panel); border-radius: 14px; padding: 36px 28px; text-align: center; color: var(--muted); border: 1px dashed #cfd4da; }
+  .empty h2 { color: var(--ink); margin-bottom: 8px; }
+
+  .stores { display: flex; flex-direction: column; gap: 10px; }
+  .store { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+  .store:hover { border-color: #c4c9d0; }
+  .store.is-best { border-color: var(--best); background: #f3fbf6; }
+  .store-top { display: flex; align-items: center; gap: 10px; }
+  .store .name { font-weight: 600; font-size: 15px; }
+  .store .badges { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .store .total { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .badge { font-size: 11.5px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge.best { background: var(--best); color: #fff; }
+  .badge.offer { background: #fff1e0; color: var(--offer); }
+  .badge.miss { background: #fde8e7; color: var(--miss); }
+  .bar { height: 6px; background: #f0f1f3; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: #b7bec7; border-radius: 3px; }
+  .is-best .bar span { background: var(--best); }
+
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; cursor: default; }
+  table.lines td { padding: 7px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+  table.lines td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.lines tr.missing td { color: var(--miss); }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
+  .tag.swap { background: #e8f1fd; color: #1b5fb5; }
+  .tag.offer { background: #fff1e0; color: var(--offer); }
+
+  .split { margin: 14px 0 0; font-size: 13.5px; }
+  .split.muted { color: var(--muted); }
+  .split.worth { background: #f3fbf6; border: 1px solid #bfe6cd; border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+
+  ul.items { list-style: none; margin: 0; padding: 0; }
+  ul.items li { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+  ul.items li:first-child { border-top: 0; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-main .label { display: block; font-size: 14px; font-weight: 500; }
+  .item-main .from { font-size: 12px; color: var(--muted); }
+  .qty { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .qty button, .remove {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: #fff;
+    cursor: pointer; font-size: 15px; line-height: 1; color: var(--ink);
+  }
+  .qty span { min-width: 16px; text-align: center; font-size: 14px; }
+  .anybrand { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+  .remove { border: 0; color: var(--muted); font-size: 18px; }
+  .remove:hover { color: var(--miss); }
+  button.link { background: none; border: 0; color: #027eb5; font: inherit; font-size: 13px; cursor: pointer; padding: 0; }
+
+  footer.note { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .phone { top: 76px; }
+  header.top { flex-wrap: nowrap; }
+  @media (max-width: 900px) {
+    header.top { padding: 12px 16px; }
+    header.top nav a:not(.cta) { display: none; }
+    .phone { position: static; }
+    .screen { height: 600px; }
+    ul.items li { flex-wrap: wrap; row-gap: 6px; }
+    .item-main { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1><span>PriceCheck</span></h1>
+  <nav><a href="#how">How it works</a><a href="#demo" class="cta">Try the demo</a></nav>
+</header>
+<div class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">Coming soon on WhatsApp</p>
+    <h2 class="headline">Send your shopping list. Find the cheapest supermarket.</h2>
+    <p class="sub">PriceCheck compares your whole list across Naivas, Carrefour, Quickmart and Chandarana,
+      spots the offers, and tells you where one trip costs least. Type it, say it in a voice note, or
+      snap your handwritten list.</p>
+    <a href="#demo" class="cta big">Try the live demo</a>
+  </div>
+  <ol class="steps" id="how">
+    <li><b>Send your list</b><span>"unga 2kg, sukari kilo 2, tray ya mayai": English, Swahili or Sheng, typed or spoken.</span></li>
+    <li><b>We match every item</b><span>Each line is matched to the right product and size, with one quick question if something is unclear.</span></li>
+    <li><b>See the cheapest store</b><span>Totals for every supermarket, the offers that apply, and a split-shop tip only when it really saves money.</span></li>
+  </ol>
+</div>
+<div class="disclaimer" id="demo">
+  <b>Demo with made-up prices.</b> The prices below are sample figures for 12 products, not real store prices.
+  PriceCheck is not affiliated with Naivas, Carrefour, Quickmart or Chandarana.
+</div>
+<main>
+  <div>
+    <div class="phone">
+      <div class="screen">
+        <div class="wa-head">
+          <div class="avatar">PC</div>
+          <div class="who"><b>PriceCheck</b><small>online</small></div>
+        </div>
+        <div id="chat" aria-live="polite"></div>
+        <div class="composer">
+          <textarea id="msg" rows="1" placeholder="Type your shopping list"></textarea>
+          <button id="send" aria-label="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="samples" id="samples"></div>
+  </div>
+  <div id="panel"></div>
+  <footer class="note">
+    This demo runs the same matching and comparison engine as the real service. On WhatsApp, the PriceCheck
+    assistant replies in its own words using these same numbers. Live prices will come from store websites,
+    retailer price feeds and shoppers' receipts.
+  </footer>
+</main>
+<script>/*APP*/</script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PriceCheck: find the cheapest supermarket for your list</title>
+<meta name="description" content="Send your shopping list and see which Kenyan supermarket is cheapest for the whole lot. Live demo with sample prices.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23075e54'/%3E%3Ctext x='16' y='21' font-size='13' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EPC%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --wa-dark: #075e54;
+    --wa-green: #25d366;
+    --wa-bg: #efeae2;
+    --wa-me: #d9fdd3;
+    --ink: #1c1e21;
+    --muted: #667781;
+    --line: #e4e6eb;
+    --best: #128c4a;
+    --offer: #b25e00;
+    --miss: #b42318;
+    --panel: #ffffff;
+    --page: #f4f5f7;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); min-height: 100vh; }
+
+  header.top {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 18px 28px; background: #fff; border-bottom: 1px solid var(--line);
+  }
+  header.top { justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5; }
+  header.top h1 { font-size: 20px; margin: 0; letter-spacing: -0.2px; }
+  header.top h1 span { color: var(--wa-dark); }
+  header.top nav { display: flex; gap: 18px; align-items: center; font-size: 14px; }
+  header.top nav a { color: var(--ink); text-decoration: none; }
+  a.cta { background: var(--wa-dark); color: #fff !important; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: 600; }
+  a.cta:hover { background: #0a6f63; }
+  a.cta.big { display: inline-block; padding: 12px 22px; font-size: 15px; margin-top: 8px; }
+
+  .hero {
+    max-width: 1180px; margin: 0 auto; padding: 48px 28px 28px;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
+  }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 28px 16px 16px; gap: 24px; } }
+  .eyebrow { color: var(--wa-dark); font-weight: 700; font-size: 13px; letter-spacing: .4px; text-transform: uppercase; margin: 0 0 10px; }
+  .headline { font-size: clamp(28px, 4vw, 40px); line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.6px; }
+  .sub { color: #3b4a54; font-size: 16px; line-height: 1.55; margin: 0 0 14px; max-width: 560px; }
+  .steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .steps li {
+    counter-increment: s; background: #fff; border-radius: 12px; padding: 14px 16px 14px 58px; position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05); display: grid; gap: 3px; font-size: 14px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 16px; top: 14px; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--wa-me); color: var(--wa-dark); font-weight: 700; display: grid; place-items: center;
+  }
+  .steps li span { color: var(--muted); line-height: 1.45; }
+  .disclaimer {
+    max-width: 1124px; margin: 8px auto 0; padding: 10px 16px; border-radius: 10px; font-size: 13.5px;
+    background: #fff8e6; border: 1px solid #f3dca2; color: #6b5310; scroll-margin-top: 80px;
+  }
+  @media (max-width: 900px) { .disclaimer { margin: 8px 16px 0; } }
+
+  main {
+    display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 28px;
+    padding: 24px 28px 40px; max-width: 1180px; margin: 0 auto; align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 16px; } }
+
+  /* ---------------- phone / chat ---------------- */
+  .phone {
+    background: #fff; border-radius: 28px; padding: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.10);
+    position: sticky; top: 20px;
+  }
+  .screen { border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; height: min(720px, calc(100vh - 140px)); min-height: 520px; }
+  .wa-head { background: var(--wa-dark); color: #fff; display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--wa-green); display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+  .wa-head .who b { display: block; font-size: 15px; }
+  .wa-head .who small { opacity: .8; font-size: 12px; }
+
+  #chat {
+    flex: 1; overflow-y: auto; padding: 14px 12px; background: var(--wa-bg);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .bubble {
+    max-width: 86%; padding: 7px 9px 18px; border-radius: 8px; font-size: 14px; line-height: 1.42;
+    position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,.13); word-wrap: break-word;
+  }
+  .bubble.bot { background: #fff; align-self: flex-start; border-top-left-radius: 0; }
+  .bubble.me { background: var(--wa-me); align-self: flex-end; border-top-right-radius: 0; }
+  .bubble .time { position: absolute; right: 8px; bottom: 3px; font-size: 11px; color: var(--muted); }
+  .bubble .ticks { color: #53bdeb; }
+  .bubble.typing { padding: 10px 12px; display: flex; gap: 4px; }
+  .bubble.typing span { width: 7px; height: 7px; border-radius: 50%; background: #9aa5ad; animation: blink 1s infinite; }
+  .bubble.typing span:nth-child(2) { animation-delay: .15s; }
+  .bubble.typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .3 } 40% { opacity: 1 } }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .choices button {
+    border: 1px solid var(--line); background: #fff; color: #027eb5; border-radius: 6px;
+    padding: 8px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .choices button:hover:not(:disabled) { background: #f5f6f6; }
+  .choices button:disabled { color: var(--muted); cursor: default; }
+  .choices button.picked { color: var(--wa-dark); font-weight: 600; border-color: var(--wa-green); }
+
+  .composer { display: flex; gap: 8px; align-items: flex-end; padding: 8px; background: #f0f2f5; }
+  .composer textarea {
+    flex: 1; resize: none; border: 0; border-radius: 20px; padding: 10px 14px; font: inherit; font-size: 14px;
+    outline: none; max-height: 120px; line-height: 1.35;
+  }
+  .composer button {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--wa-dark); color: #fff;
+    cursor: pointer; display: grid; place-items: center; flex: none;
+  }
+  .composer button:hover { background: #0a6f63; }
+  .samples { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 4px 2px; }
+  .samples button {
+    border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 6px 12px;
+    font: inherit; font-size: 12.5px; cursor: pointer; color: var(--ink);
+  }
+  .samples button:hover { border-color: var(--wa-green); }
+
+  /* ---------------- panel ---------------- */
+  #panel { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  section { background: var(--panel); border-radius: 14px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  h2 { font-size: 16px; margin: 0; }
+  .saving { color: var(--best); font-weight: 600; font-size: 14px; }
+  .empty { background: var(--panel); border-radius: 14px; padding: 36px 28px; text-align: center; color: var(--muted); border: 1px dashed #cfd4da; }
+  .empty h2 { color: var(--ink); margin-bottom: 8px; }
+
+  .stores { display: flex; flex-direction: column; gap: 10px; }
+  .store { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+  .store:hover { border-color: #c4c9d0; }
+  .store.is-best { border-color: var(--best); background: #f3fbf6; }
+  .store-top { display: flex; align-items: center; gap: 10px; }
+  .store .name { font-weight: 600; font-size: 15px; }
+  .store .badges { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .store .total { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .badge { font-size: 11.5px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge.best { background: var(--best); color: #fff; }
+  .badge.offer { background: #fff1e0; color: var(--offer); }
+  .badge.miss { background: #fde8e7; color: var(--miss); }
+  .bar { height: 6px; background: #f0f1f3; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: #b7bec7; border-radius: 3px; }
+  .is-best .bar span { background: var(--best); }
+
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; cursor: default; }
+  table.lines td { padding: 7px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+  table.lines td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.lines tr.missing td { color: var(--miss); }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
+  .tag.swap { background: #e8f1fd; color: #1b5fb5; }
+  .tag.offer { background: #fff1e0; color: var(--offer); }
+
+  .split { margin: 14px 0 0; font-size: 13.5px; }
+  .split.muted { color: var(--muted); }
+  .split.worth { background: #f3fbf6; border: 1px solid #bfe6cd; border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+
+  ul.items { list-style: none; margin: 0; padding: 0; }
+  ul.items li { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+  ul.items li:first-child { border-top: 0; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-main .label { display: block; font-size: 14px; font-weight: 500; }
+  .item-main .from { font-size: 12px; color: var(--muted); }
+  .qty { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .qty button, .remove {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: #fff;
+    cursor: pointer; font-size: 15px; line-height: 1; color: var(--ink);
+  }
+  .qty span { min-width: 16px; text-align: center; font-size: 14px; }
+  .anybrand { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+  .remove { border: 0; color: var(--muted); font-size: 18px; }
+  .remove:hover { color: var(--miss); }
+  button.link { background: none; border: 0; color: #027eb5; font: inherit; font-size: 13px; cursor: pointer; padding: 0; }
+
+  footer.note { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .phone { top: 76px; }
+  header.top { flex-wrap: nowrap; }
+  @media (max-width: 900px) {
+    header.top { padding: 12px 16px; }
+    header.top nav a:not(.cta) { display: none; }
+    .phone { position: static; }
+    .screen { height: 600px; }
+    ul.items li { flex-wrap: wrap; row-gap: 6px; }
+    .item-main { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1><span>PriceCheck</span></h1>
+  <nav><a href="#how">How it works</a><a href="#demo" class="cta">Try the demo</a></nav>
+</header>
+<div class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">Coming soon on WhatsApp</p>
+    <h2 class="headline">Send your shopping list. Find the cheapest supermarket.</h2>
+    <p class="sub">PriceCheck compares your whole list across Naivas, Carrefour, Quickmart and Chandarana,
+      spots the offers, and tells you where one trip costs least. Type it, say it in a voice note, or
+      snap your handwritten list.</p>
+    <a href="#demo" class="cta big">Try the live demo</a>
+  </div>
+  <ol class="steps" id="how">
+    <li><b>Send your list</b><span>"unga 2kg, sukari kilo 2, tray ya mayai": English, Swahili or Sheng, typed or spoken.</span></li>
+    <li><b>We match every item</b><span>Each line is matched to the right product and size, with one quick question if something is unclear.</span></li>
+    <li><b>See the cheapest store</b><span>Totals for every supermarket, the offers that apply, and a split-shop tip only when it really saves money.</span></li>
+  </ol>
+</div>
+<div class="disclaimer" id="demo">
+  <b>Demo with made-up prices.</b> The prices below are sample figures for 12 products, not real store prices.
+  PriceCheck is not affiliated with Naivas, Carrefour, Quickmart or Chandarana.
+</div>
+<main>
+  <div>
+    <div class="phone">
+      <div class="screen">
+        <div class="wa-head">
+          <div class="avatar">PC</div>
+          <div class="who"><b>PriceCheck</b><small>online</small></div>
+        </div>
+        <div id="chat" aria-live="polite"></div>
+        <div class="composer">
+          <textarea id="msg" rows="1" placeholder="Type your shopping list"></textarea>
+          <button id="send" aria-label="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="samples" id="samples"></div>
+  </div>
+  <div id="panel"></div>
+  <footer class="note">
+    This demo runs the same matching and comparison engine as the real service. On WhatsApp, the PriceCheck
+    assistant replies in its own words using these same numbers. Live prices will come from store websites,
+    retailer price feeds and shoppers' receipts.
+  </footer>
+</main>
+<script>(()=>{var A={g:"g",gm:"g",gms:"g",gram:"g",grams:"g",kg:"kg",kgs:"kg",kilo:"kg",kilos:"kg",kilogram:"kg",kilograms:"kg",ml:"ml",l:"l",lt:"l",ltr:"l",ltrs:"l",litre:"l",litres:"l",liter:"l",liters:"l",lita:"l",pcs:"pcs",pc:"pcs",pieces:"pcs"},se=Object.keys(A).sort((e,t)=>t.length-e.length).join("|"),G=new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${se})\\b`,"i"),V=new RegExp(`\\b(${se})\\s+(\\d+(?:[.,]\\d+)?)\\b`,"i"),ee=new RegExp("\\b(half|nusu)\\s+(kilo|kg|litre|liter|lita|l)\\b","i"),te=/^\s*(\d+)\s*(?:x|×|\*|packets?|pkts?|pieces?|pcs?)?\s+(?=\D)/i,re=/\s+(?:x|×|\*)\s*(\d+)\s*$/i;function oe(e){let t=e.trim().replace(/^[-•*\d]+[.)]\s+/,""),r=1,i,s=t.match(ee);if(s&&(i=A[s[2].toLowerCase()]==="kg"?{value:500,unit:"g"}:{value:500,unit:"ml"},t=t.replace(ee," ")),!i){let p=t.match(G),d=p?null:t.match(V);p?(i={value:ie(p[1]),unit:A[p[2].toLowerCase()]},t=t.replace(G," ")):d&&(i={value:ie(d[2]),unit:A[d[1].toLowerCase()]},t=t.replace(V," "))}let n=t.match(te);if(n)r=parseInt(n[1],10),t=t.replace(te,"");else{let p=t.match(re);p&&(r=parseInt(p[1],10),t=t.replace(re,""))}let l=t.replace(/\b(ya|wa|of|the)\b\s*$/i,"").replace(/[^\p{L}\p{N}\s'-]/gu," ").replace(/\s+/g," ").trim().toLowerCase();return{raw:e,query:l,quantity:r>0?r:1,size:i}}function ie(e){return parseFloat(e.replace(",","."))}function ne(e,t){return t==="kg"?{value:e*1e3,unit:"g"}:t==="l"?{value:e*1e3,unit:"ml"}:{value:e,unit:t}}function T(e,t){let r=ne(e.value,e.unit),i=ne(t.value,t.unit);return r.unit===i.unit&&Math.abs(r.value-i.value)<.001}var ze=.35;function P(e){let t=e.size_unit==="pcs"?`${Number(e.size_value)} pcs`:`${Number(e.size_value)}${e.size_unit}`;return`${e.brand&&!e.name.startsWith(e.brand)?`${e.brand} `:""}${e.name} ${t}`}function ae(e,t){let r={input:e.raw,quantity:e.quantity,best:null,alternatives:[],any_brand_suggested:!1,assumed_size:!1,needs_clarification:!0},i=t.filter(u=>u.score>=ze);if(i.length===0)return{...r,question:`I couldn't find "${e.raw}". What brand or type is it?`};let s=i;if(e.size){let u=i.filter(y=>T({value:y.size_value,unit:y.size_unit},e.size));if(u.length===0){let y=[...new Set(i.map(w=>P(w)))].slice(0,3).join(", ");return{...r,alternatives:i.slice(0,3).map(w=>({...w,label:P(w)})),question:`I don't have "${e.raw}" in that size yet. Would one of these do: ${y}?`}}s=u}let n=s[0],l=e.query.toLowerCase(),p=n.brand?l.includes(n.brand.toLowerCase()):!1,d=s.find(u=>u.category!==n.category&&n.score-u.score<.05);return!p&&d?{...r,alternatives:s.slice(0,4).map(u=>({...u,label:P(u)})),question:`For "${e.raw}", do you mean ${n.category} or ${d.category}?`}:{...r,best:{...n,label:P(n)},alternatives:s.slice(1,4).map(u=>({...u,label:P(u)})),any_brand_suggested:!p,assumed_size:!e.size&&s.some(u=>u.category===n.category&&!T({value:u.size_value,unit:u.size_unit},{value:n.size_value,unit:n.size_unit})),needs_clarification:!1}}var F=e=>Math.round(e*100),z=e=>Math.round(e)/100;function le(e,t,r,i,s={}){let n=F(s.splitThresholdKes??200),l=(s.staleAfterDays??7)*864e5,p=(s.now??new Date).getTime(),d=new Map(t.map(o=>[o.id,o])),u=(o,a)=>`${o}:${a}`,y=new Map(r.map(o=>[u(o.product_id,o.retailer_id),o])),w=o=>{let a=d.get(o.product_id);return a?o.any_brand?t.filter(m=>m.category===a.category&&T({value:m.size_value,unit:m.size_unit},{value:a.size_value,unit:a.size_unit})):[a]:[]},W=o=>{let a=d.get(o);return a?`${a.brand&&!a.name.startsWith(a.brand)?a.brand+" ":""}${a.name} ${xe(a)}`:`product ${o}`},we=(o,a,m)=>{let c=null;for(let _ of w(o)){let b=y.get(u(_.id,m.id));if(!b)continue;let k=F(b.promo_price??b.price);(!c||k<c.unitCents||k===c.unitCents&&_.id===o.product_id)&&(c={product:_,row:b,unitCents:k})}return c?{item_index:a,requested_product_id:o.product_id,product_id:c.product.id,product_name:W(c.product.id),substituted:c.product.id!==o.product_id,quantity:o.quantity,unit_price_kes:z(c.unitCents),line_total_kes:z(Math.round(c.unitCents*o.quantity)),on_offer:c.row.promo_price!=null,regular_price_kes:c.row.price,price_date:c.row.observed_at,stale:p-Date.parse(c.row.observed_at)>l}:null},X=i.map(o=>{let a=[],m=[];e.forEach((_,b)=>{let k=we(_,b,o);k?a.push(k):m.push({item_index:b,product_name:W(_.product_id)})});let c=a.reduce((_,b)=>_+F(b.line_total_kes),0);return{retailer_code:o.code,retailer_name:o.name,total_kes:z(c),totalCents:c,items_found:a.length,items_missing:m.length,missing:m,offers_used:a.filter(_=>_.on_offer).length,has_stale_prices:a.some(_=>_.stale),lines:a}}),H=X.filter(o=>o.items_found>0).sort((o,a)=>o.items_missing-a.items_missing||o.totalCents-a.totalCents),N=H.filter(o=>o.items_missing===0),j=[],L=null;if(N.length>0){let o=N[0],a=N[N.length-1];L={retailer_code:o.retailer_code,retailer_name:o.retailer_name,total_kes:o.total_kes,saving_vs_most_expensive_kes:z(a.totalCents-o.totalCents),most_expensive_retailer:a.retailer_name}}else H.length>0&&j.push("No single store has every item; totals only include the items each store stocks.");let q=[],Y=[];e.forEach((o,a)=>{let m=null;for(let c of X){let _=c.lines.find(k=>k.item_index===a);if(!_)continue;let b=F(_.line_total_kes);(!m||b<m.cents)&&(m={retailer:c.retailer_name,cents:b,name:_.product_name})}m?Y.push({index:a,...m}):q.push({item_index:a,product_name:W(o.product_id)})});let Z=null;if(q.length===0&&e.length>0){let o=Y.reduce((c,_)=>c+_.cents,0),a=L?F(L.total_kes)-o:0,m=new Map;for(let c of Y)m.set(c.retailer,[...m.get(c.retailer)??[],c.name]);Z={total_kes:z(o),saving_vs_best_kes:z(a),worth_it:L!==null&&m.size>1&&a>=n,stores:[...m].map(([c,_])=>({retailer_name:c,items:_}))}}return q.length>0&&j.push(`${q.length} item(s) have no price at any store yet.`),H.some(o=>o.has_stale_prices)&&j.push("Some prices are more than a week old and may have changed."),{item_count:e.length,ranking:H.map(({totalCents:o,...a})=>a),best:L,split:Z,not_found_anywhere:q,notes:j}}function xe(e){let t=String(Number(e.size_value));return e.size_unit==="pcs"?`(${t} pcs)`:`${t}${e.size_unit}`}function ue(e){return e.toLowerCase().match(/[\p{L}\p{N}]+/gu)??[]}function ce(e){let t=`  ${e} `,r=[];for(let i=0;i+3<=t.length;i++)r.push(t.slice(i,i+3));return r}function U(e){return new Set(ue(e).flatMap(ce))}function de(e,t){let r=U(e),i=U(t);if(r.size===0||i.size===0)return 0;let s=0;for(let n of r)i.has(n)&&s++;return s/(r.size+i.size-s)}function pe(e,t){let r=U(e);if(r.size===0)return 0;let i=ue(t).flatMap(ce),s=0;for(let n=0;n<i.length;n++){let l=new Set,p=0;for(let d=n;d<i.length;d++){let u=i[d];if(l.has(u)||(l.add(u),r.has(u)&&p++),!r.has(i[n])||!r.has(u))continue;let y=p/(r.size+l.size-p);y>s&&(s=y)}}return s}var me=.3,_e=.6;var B={retailers:[{id:1,code:"naivas",name:"Naivas"},{id:2,code:"carrefour",name:"Carrefour"},{id:3,code:"quickmart",name:"Quickmart"},{id:4,code:"chandarana",name:"Chandarana Foodplus"}],products:[{id:1,name:"Jogoo Maize Meal",brand:"Jogoo",category:"maize flour",size_value:2,size_unit:"kg",search_text:"jogoo jogoo maize meal maize flour unga unga wa ugali maize flour"},{id:2,name:"Pembe Maize Flour",brand:"Pembe",category:"maize flour",size_value:2,size_unit:"kg",search_text:"pembe pembe maize flour maize flour unga unga wa ugali maize flour"},{id:3,name:"Ajab Home Baking Flour",brand:"Ajab",category:"wheat flour",size_value:2,size_unit:"kg",search_text:"ajab ajab home baking flour wheat flour unga wa ngano baking flour wheat flour"},{id:4,name:"Exe All Purpose Flour",brand:"Exe",category:"wheat flour",size_value:2,size_unit:"kg",search_text:"exe exe all purpose flour wheat flour unga wa ngano baking flour wheat flour"},{id:5,name:"Kabras Sugar",brand:"Kabras",category:"sugar",size_value:2,size_unit:"kg",search_text:"kabras kabras sugar sugar sukari sugar"},{id:6,name:"Mumias Sugar",brand:"Mumias",category:"sugar",size_value:2,size_unit:"kg",search_text:"mumias mumias sugar sugar sukari sugar"},{id:7,name:"Fresh Fri Cooking Oil",brand:"Fresh Fri",category:"cooking oil",size_value:1,size_unit:"l",search_text:"fresh fri fresh fri cooking oil cooking oil mafuta mafuta ya kupika cooking oil"},{id:8,name:"Elianto Corn Oil",brand:"Elianto",category:"cooking oil",size_value:1,size_unit:"l",search_text:"elianto elianto corn oil cooking oil mafuta mafuta ya kupika cooking oil"},{id:9,name:"Brookside Fresh Milk",brand:"Brookside",category:"milk",size_value:500,size_unit:"ml",search_text:"brookside brookside fresh milk milk maziwa milk"},{id:10,name:"Kimbo Cooking Fat",brand:"Kimbo",category:"cooking fat",size_value:1,size_unit:"kg",search_text:"kimbo kimbo cooking fat cooking fat kimbo fat ya kupika cooking fat"},{id:11,name:"Eggs Tray",brand:null,category:"eggs",size_value:30,size_unit:"pcs",search_text:" eggs tray eggs mayai tray ya mayai eggs"},{id:12,name:"Festive White Bread",brand:"Festive",category:"bread",size_value:400,size_unit:"g",search_text:"festive festive white bread bread mkate bread"}],prices:[{product_id:1,retailer_id:1,price:147,promo_price:null,source:"online"},{product_id:1,retailer_id:2,price:149,promo_price:null,source:"online"},{product_id:1,retailer_id:3,price:153,promo_price:null,source:"online"},{product_id:1,retailer_id:4,price:155,promo_price:null,source:"online"},{product_id:2,retailer_id:1,price:145,promo_price:null,source:"online"},{product_id:2,retailer_id:2,price:139,promo_price:null,source:"online"},{product_id:2,retailer_id:3,price:151,promo_price:null,source:"online"},{product_id:2,retailer_id:4,price:145,promo_price:null,source:"online"},{product_id:3,retailer_id:1,price:214,promo_price:null,source:"online"},{product_id:3,retailer_id:2,price:206,promo_price:null,source:"online"},{product_id:3,retailer_id:3,price:212,promo_price:null,source:"online"},{product_id:3,retailer_id:4,price:214,promo_price:null,source:"online"},{product_id:4,retailer_id:1,price:203,promo_price:null,source:"online"},{product_id:4,retailer_id:2,price:205,promo_price:null,source:"online"},{product_id:4,retailer_id:3,price:211,promo_price:null,source:"online"},{product_id:4,retailer_id:4,price:203,promo_price:null,source:"online"},{product_id:5,retailer_id:1,price:335,promo_price:299,source:"online"},{product_id:5,retailer_id:2,price:320,promo_price:null,source:"online"},{product_id:5,retailer_id:3,price:347,promo_price:null,source:"online"},{product_id:5,retailer_id:4,price:333,promo_price:null,source:"online"},{product_id:6,retailer_id:1,price:333,promo_price:null,source:"online"},{product_id:6,retailer_id:2,price:337,promo_price:null,source:"online"},{product_id:6,retailer_id:3,price:347,promo_price:null,source:"online"},{product_id:6,retailer_id:4,price:350,promo_price:null,source:"online"},{product_id:7,retailer_id:1,price:330,promo_price:null,source:"online"},{product_id:7,retailer_id:2,price:317,promo_price:null,source:"online"},{product_id:7,retailer_id:3,price:343,promo_price:null,source:"online"},{product_id:7,retailer_id:4,price:330,promo_price:null,source:"online"},{product_id:8,retailer_id:1,price:428,promo_price:null,source:"online"},{product_id:8,retailer_id:2,price:412,promo_price:null,source:"online"},{product_id:8,retailer_id:3,price:424,promo_price:null,source:"online"},{product_id:9,retailer_id:1,price:64,promo_price:null,source:"online"},{product_id:9,retailer_id:2,price:65,promo_price:null,source:"online"},{product_id:9,retailer_id:3,price:67,promo_price:null,source:"online"},{product_id:9,retailer_id:4,price:64,promo_price:null,source:"online"},{product_id:10,retailer_id:1,price:364,promo_price:null,source:"online"},{product_id:10,retailer_id:2,price:349,promo_price:null,source:"online"},{product_id:10,retailer_id:3,price:378,promo_price:null,source:"online"},{product_id:10,retailer_id:4,price:364,promo_price:null,source:"online"},{product_id:11,retailer_id:1,price:510,promo_price:null,source:"online"},{product_id:11,retailer_id:2,price:515,promo_price:null,source:"online"},{product_id:11,retailer_id:3,price:530,promo_price:null,source:"online"},{product_id:11,retailer_id:4,price:536,promo_price:null,source:"online"},{product_id:12,retailer_id:1,price:70,promo_price:null,source:"online"},{product_id:12,retailer_id:2,price:67,promo_price:null,source:"online"},{product_id:12,retailer_id:3,price:73,promo_price:null,source:"online"},{product_id:12,retailer_id:4,price:70,promo_price:null,source:"online"}]};var D=B.products,ge=B.retailers,Re=new Date(Date.now()-864e5).toISOString(),Se=B.prices.map(e=>({...e,observed_at:Re}));function Ie(e,t=8){let r=e.toLowerCase();return D.map(i=>{let s=de(i.search_text,r),n=pe(r,i.search_text);return{p:i,s,w:n,score:Math.max(s,n)}}).filter(i=>i.s>=me||i.w>=_e).sort((i,s)=>s.score-i.score||i.p.id-s.p.id).slice(0,t).map(({p:i,score:s})=>({id:i.id,name:i.name,brand:i.brand,category:i.category,size_value:i.size_value,size_unit:i.size_unit,score:s}))}function be(e){return e.map(t=>{let r=oe(t);return ae(r,Ie(r.query||t))})}function fe(e){return le(e,D,Se,ge,{splitThresholdKes:200})}function he(e){return e.split(/[\n,;]+/).map(t=>t.trim()).filter(t=>t.length>0)}function Q(e){let t=D.find(s=>s.id===e);if(!t)return`product ${e}`;let r=t.size_unit==="pcs"?` (${t.size_value} pcs)`:` ${t.size_value}${t.size_unit}`;return`${t.brand&&!t.name.startsWith(t.brand)?`${t.brand} `:""}${t.name}${r}`}var Ze=D.map(e=>({id:e.id,label:Q(e.id),category:e.category})),Ge=ge.map(e=>e.name);var Me=[`unga 2kg
+sukari kilo 2
+mafuta ya kupika 1 litre
+tray ya mayai
+maziwa 500ml x4`,"2 x Jogoo 2kg, Kabras sugar 2kg, Kimbo 1kg, mkate x2","Exe 2kg, Mumias sugar, Elianto 1l, Brookside milk 500ml x6"],f=[],Ee=1,v=null,R=null,E=e=>document.querySelector(e),S=E("#chat"),$=E("#msg"),x=E("#panel"),h=e=>e.replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t]),g=e=>"Ksh "+e.toLocaleString("en-KE",{minimumFractionDigits:e%1?2:0,maximumFractionDigits:2}),K=e=>h(e).replace(/\*([^*\n]+)\*/g,"<b>$1</b>").replace(/\n/g,"<br>"),Le=()=>new Date().toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"});function M(e,t,r){let i=document.createElement("div");return i.className=`bubble ${e}`,i.innerHTML=`<div class="text">${t}</div><span class="time">${Le()}${e==="me"?' <span class="ticks">\u2713\u2713</span>':""}</span>`,r&&i.insertBefore(r,i.querySelector(".time")),S.appendChild(i),S.scrollTop=S.scrollHeight,i}function ye(e){let t=document.createElement("div");t.className="bubble bot typing",t.innerHTML="<span></span><span></span><span></span>",S.appendChild(t),S.scrollTop=S.scrollHeight,setTimeout(()=>{t.remove(),e()},650)}function qe(e){if(e.ranking.length===0)return"I don't have prices for those items yet.";let t=[];t.push(`Your list, ${e.item_count} item${e.item_count===1?"":"s"}:`),e.ranking.forEach((n,l)=>{let p=e.best&&n.retailer_code===e.best.retailer_code?" (cheapest)":"",d=n.items_missing?`, missing ${n.items_missing}`:"",u=`${n.retailer_name}: ${g(n.total_kes)}${p}${d}`;t.push(l===0&&p?`*${u}*`:u)}),e.best&&e.best.saving_vs_most_expensive_kes>0&&(t.push(""),t.push(`${e.best.retailer_name} saves you ${g(e.best.saving_vs_most_expensive_kes)} vs ${e.best.most_expensive_retailer}.`));let r=e.ranking[0],i=r.lines.filter(n=>n.on_offer);for(let n of i)t.push(`Offer: ${n.product_name} is ${g(n.unit_price_kes)} at ${r.retailer_name} (usually ${g(n.regular_price_kes)}).`);let s=r.lines.filter(n=>n.substituted);s.length&&t.push(`Cheaper brand picked at ${r.retailer_name}: ${s.map(n=>n.product_name).join(", ")}.`);for(let n of e.ranking.filter(l=>l.items_missing))t.push(`${n.retailer_name} doesn't stock ${n.missing.map(l=>l.product_name).join(", ")}.`);if(e.split&&e.split.saving_vs_best_kes>0)if(t.push(""),e.split.worth_it){t.push(`*Tip:* split your shop to save ${g(e.split.saving_vs_best_kes)} more:`);for(let n of e.split.stores)t.push(`\u2022 ${n.retailer_name}: ${n.items.join(", ")}`)}else t.push(`Splitting between stores would only save ${g(e.split.saving_vs_best_kes)}, so one trip is best.`);return e.notes.length&&t.push("",e.notes[0]),t.push("","Want me to save this as your usual list?"),t.join(`
+`)}function J(e){let t=he(e);if(t.length===0)return;M("me",K(e.trim())),$.value="",$e();let r=be(t),i=r.filter(l=>l.best),s=r.filter(l=>!l.best);for(let l of i)ke(l.input,l.best.id,l.quantity,l.any_brand_suggested);I=s.filter(l=>ve(l).length>0).length,ye(()=>{s.length&&Te(s),I===0&&f.length&&C(!0)})}var I=0;function ke(e,t,r,i){let s=f.find(n=>n.product_id===t&&n.any_brand===i);s?s.quantity+=r:f.push({key:Ee++,input:e,product_id:t,quantity:r,any_brand:i})}function Te(e){for(let t of e){let r=document.createElement("div");r.className="choices";let i=ve(t);for(let n of i){let l=document.createElement("button");l.textContent=n.label,l.onclick=()=>{r.querySelectorAll("button").forEach(p=>p.disabled=!0),l.classList.add("picked"),M("me",h(n.label)),ke(t.input,n.id,t.quantity,n.any_brand),I=Math.max(0,I-1),I===0&&ye(()=>C(!0))},r.appendChild(l)}let s=t.question??`What did you mean by "${t.input}"?`;M("bot",K(i.length?s:`${s}
+
+(This demo knows 12 everyday products; the live catalogue will have 300+.)`),i.length?r:void 0)}}function ve(e){if(e.alternatives.length===0)return[];let t=[...new Set(e.alternatives.map(r=>r.category))];return t.length>1&&/do you mean/.test(e.question??"")?t.map(r=>({id:e.alternatives.find(s=>s.category===r).id,label:r[0].toUpperCase()+r.slice(1),any_brand:!0})):e.alternatives.slice(0,3).map(r=>({id:r.id,label:r.label,any_brand:!1}))}function C(e){if(f.length===0){v=null,O();return}v=fe(f.map(({product_id:t,quantity:r,any_brand:i})=>({product_id:t,quantity:r,any_brand:i}))),(!R||!v.ranking.some(t=>t.retailer_code===R))&&(R=v.ranking[0]?.retailer_code??null),e&&M("bot",K(qe(v))),O()}function O(){if(!v){x.innerHTML=`
+      <div class="empty">
+        <h2>Send a list to see the comparison</h2>
+        <p>Type it the way you'd text it: <i>unga 2kg, sukari kilo 2, tray ya mayai</i>. Or tap a sample list under the chat.</p>
+      </div>`;return}let e=v,t=Math.max(...e.ranking.map(r=>r.total_kes));x.innerHTML=`
+    <section>
+      <div class="section-head">
+        <h2>Store totals</h2>
+        ${e.best?`<span class="saving">Save ${g(e.best.saving_vs_most_expensive_kes)} at ${h(e.best.retailer_name)}</span>`:""}
+      </div>
+      <div class="stores">${e.ranking.map(r=>Pe(r,t)).join("")}</div>
+      ${Fe(e)}
+    </section>
+    <section>
+      <div class="section-head">
+        <h2>Your list</h2>
+        <button class="link" id="clear">Start a new list</button>
+      </div>
+      <ul class="items">${f.map(He).join("")}</ul>
+    </section>`,x.querySelectorAll(".store").forEach(r=>{r.onclick=()=>{R=R===r.dataset.code?null:r.dataset.code,O()}}),x.querySelectorAll("input[data-anybrand]").forEach(r=>{r.onchange=()=>{let i=f.find(s=>s.key===Number(r.dataset.anybrand));i.any_brand=r.checked,C(!1)}}),x.querySelectorAll("button[data-remove]").forEach(r=>{r.onclick=()=>{f=f.filter(i=>i.key!==Number(r.dataset.remove)),C(!1)}}),x.querySelectorAll("button[data-qty]").forEach(r=>{r.onclick=()=>{let i=f.find(s=>s.key===Number(r.dataset.qty));i.quantity=Math.max(1,i.quantity+Number(r.dataset.step)),C(!1)}}),E("#clear").onclick=()=>{f=[],I=0,M("bot","List cleared. Send me a new one whenever you're ready."),C(!1)}}function Pe(e,t){let r=v?.best?.retailer_code===e.retailer_code,i=R===e.retailer_code,s=t?Math.max(8,e.total_kes/t*100):0,n=[r?'<span class="badge best">Cheapest</span>':"",e.offers_used?`<span class="badge offer">${e.offers_used} offer${e.offers_used>1?"s":""}</span>`:"",e.items_missing?`<span class="badge miss">${e.items_missing} missing</span>`:""].join(""),l=e.lines.map(d=>`<tr>
+        <td>${h(d.product_name)}${d.substituted?' <span class="tag swap">cheaper brand</span>':""}${d.on_offer?` <span class="tag offer">offer, usually ${g(d.regular_price_kes)}</span>`:""}</td>
+        <td class="num">${d.quantity} \xD7 ${g(d.unit_price_kes)}</td>
+        <td class="num">${g(d.line_total_kes)}</td></tr>`).join(""),p=e.missing.map(d=>`<tr class="missing"><td colspan="3">Not stocked: ${h(d.product_name)}</td></tr>`).join("");return`
+    <div class="store ${r?"is-best":""} ${i?"open":""}" data-code="${e.retailer_code}">
+      <div class="store-top">
+        <span class="name">${h(e.retailer_name)}</span>
+        <span class="badges">${n}</span>
+        <span class="total">${g(e.total_kes)}</span>
+      </div>
+      <div class="bar"><span style="width:${s}%"></span></div>
+      ${i?`<table class="lines">${l}${p}</table>`:""}
+    </div>`}function Fe(e){return!e.split||e.split.stores.length<2?"":e.split.worth_it?`<div class="split worth"><b>Split and save ${g(e.split.saving_vs_best_kes)} more</b>${e.split.stores.map(t=>`<div>${h(t.retailer_name)}: ${t.items.map(h).join(", ")}</div>`).join("")}</div>`:`<p class="split muted">Splitting the shop across stores would save only ${g(e.split.saving_vs_best_kes)}, under the Ksh 200 minimum, so PriceCheck recommends one trip.</p>`}function He(e){return`<li>
+    <div class="item-main">
+      <span class="label">${h(Q(e.product_id))}</span>
+      <span class="from">you wrote "${h(e.input)}"</span>
+    </div>
+    <div class="qty">
+      <button data-qty="${e.key}" data-step="-1" aria-label="Fewer">\u2212</button>
+      <span>${e.quantity}</span>
+      <button data-qty="${e.key}" data-step="1" aria-label="More">+</button>
+    </div>
+    <label class="anybrand" title="Let PriceCheck pick the cheapest brand of the same size">
+      <input type="checkbox" data-anybrand="${e.key}" ${e.any_brand?"checked":""}> any brand
+    </label>
+    <button class="remove" data-remove="${e.key}" aria-label="Remove">\xD7</button>
+  </li>`}function $e(){$.style.height="auto",$.style.height=Math.min($.scrollHeight,120)+"px"}E("#send").onclick=()=>J($.value);$.addEventListener("keydown",e=>{e.key==="Enter"&&!e.shiftKey&&(e.preventDefault(),J($.value))});$.addEventListener("input",$e);var Ne=E("#samples");Me.forEach((e,t)=>{let r=document.createElement("button");r.textContent=`Sample list ${t+1}`,r.title=e.replace(/\n/g,", "),r.onclick=()=>J(e),Ne.appendChild(r)});M("bot",K("Hi! I'm *PriceCheck*. Send me your shopping list, typed however you like, and I'll tell you which supermarket is cheapest for the whole lot: Naivas, Carrefour, Quickmart or Chandarana."));O();})();
+</script>
+</body>
+</html>
